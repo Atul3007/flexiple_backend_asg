@@ -3,6 +3,8 @@ import { pool } from '../db';
 import { hashpass,comparePass } from '../helper/authHelper';
 import jwt from 'jsonwebtoken';
 
+const jwtSecretKey = "asdglkjklj09876";
+
 //-------------------------------get users--------------------------------------
 
 const getUser = async (req: Request, res: Response): Promise<void> => {
@@ -68,7 +70,6 @@ const loginUser = async (req: Request, res: Response): Promise<void> => {
         if(user.active){
 
         if (await comparePass(password, user.password)) {
-            const jwtSecretKey = "asdglkjklj09876";
             const token = jwt.sign({ id: user.id }, jwtSecretKey);
             res.status(200).json({
                 msg: "Login successful",
@@ -90,6 +91,53 @@ const loginUser = async (req: Request, res: Response): Promise<void> => {
             message:"No longer a user."
         })
     }
+    } catch (error) {
+        console.error("Error in login:", error);
+        res.status(500).json({ msg: "Internal Server Error" });
+    }
+};
+
+//--------------------------------login admin----------------------------------------------
+
+const loginAdmin = async (req: Request, res: Response): Promise<void> => {
+    try {
+        const { email, password } = req.body;
+
+        if (!email || !password) {
+             res.status(400).json({
+                msg: "All fields are required"
+            });
+            return;
+        }
+
+        const result = await pool.query('SELECT * FROM admin WHERE email = $1', [email]);
+
+        if (result.rows.length === 0) {
+             res.status(401).json({
+                msg: "Invalid email or password"
+            });
+            return;
+        }
+
+        const user = result.rows[0];
+        const token = jwt.sign({ id: user.id }, jwtSecretKey);
+        if(password==user.password){
+            res.status(200).json({
+                msg: "Login successful as a admin",
+                user: {
+                    id: user.id,
+                    username: user.username,
+                    token,
+                    email: user.email
+                }
+            });
+        }
+         else {
+            res.status(401).json({
+                msg: "Invalid email or password"
+            });
+        }
+   
     } catch (error) {
         console.error("Error in login:", error);
         res.status(500).json({ msg: "Internal Server Error" });
@@ -123,4 +171,4 @@ const deleteUser = async (req: Request, res: Response): Promise<void> => {
     }
 };
 
-export { getUser , registerUser , loginUser , deleteUser};
+export { getUser , registerUser , loginUser , deleteUser , loginAdmin};

@@ -1,6 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
 import jwt, { VerifyOptions } from 'jsonwebtoken';
-import { comparePass } from '../helper/authHelper';
 import { pool } from '../db';
 
 let user_id: string | undefined;
@@ -38,10 +37,32 @@ const checkRole = async (req: Request, res: Response, next: NextFunction): Promi
 
         const userRole = result.rows[0].role;
 
-        if (userRole !== "manager") {
-            res.status(403).json({ message: "Not a manager" });
-        } else {
+        if (userRole == "manager") {
             next();
+        } else {
+            res.status(403).json({ message: "Not a manager" });
+        }
+    } catch (error) {
+        res.status(500).json({ message: "Internal Server Error" });
+    }
+};
+
+const checkAdminRole = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+        const query = `SELECT role FROM admin WHERE id = $1`;
+        const result = await pool.query(query, [user_id]);
+
+        if (result.rows.length === 0) {
+            res.status(404).json({ message: "User not found in the database" });
+            return;
+        }
+
+        const userRole = result.rows[0].role;
+
+        if (userRole == "admin") {
+            next();
+        } else {
+            res.status(403).json({ message: "Not a admin" });
         }
     } catch (error) {
         res.status(500).json({ message: "Internal Server Error" });
@@ -51,4 +72,5 @@ const checkRole = async (req: Request, res: Response, next: NextFunction): Promi
 export {
     requireSignin,
     checkRole,
+    checkAdminRole
 };
