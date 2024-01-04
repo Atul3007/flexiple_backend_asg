@@ -4,11 +4,11 @@ This repository contains the backend server for a restaurant management applicat
 
 ## Getting Started
 
-1. **Clone the repository:**
+### 1. **Clone the repository:**
    git clone <repository-url>
-2 **Install Dependencies**
+### 2 **Install Dependencies**
    npm install
-3 **Run server**
+### 3 **Run server**
    ts-node server.ts
 ## API Endpoints
 ### Authentication
