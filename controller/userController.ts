@@ -6,6 +6,32 @@ import jwt from 'jsonwebtoken';
 const jwtSecretKey = "asdglkjklj09876";
 
 //-------------------------------get users--------------------------------------
+const registerManager = async (req: Request, res: Response): Promise<void> => {
+    try {
+        const role="manager"
+        const { username, phone, email, password, address, restaurant_id } = req.body;
+
+        if (!username || !phone || !email || !password || !address || !restaurant_id) {
+            res.status(400).json({
+                msg: "All fields are required"
+            });
+            return;
+        }
+        const hashedPassword = await hashpass(password);
+        const result = await pool.query(
+            'INSERT INTO users (username, phone, email, password, address, role, restaurant_id) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *',
+            [username, phone, email, hashedPassword, address, role, restaurant_id]
+        );
+
+        res.status(201).json(result.rows[0]);
+    } catch (error) {
+        console.error("Error in registration:", error);
+        res.status(500).json({ msg: "Internal Server Error" });
+    }
+    return;
+};
+
+
 
 const getUser = async (req: Request, res: Response): Promise<void> => {
     try {
@@ -21,7 +47,8 @@ const getUser = async (req: Request, res: Response): Promise<void> => {
 
 const registerUser = async (req: Request, res: Response): Promise<void> => {
     try {
-        const { username, phone, email, password, address, role, restaurant_id } = req.body;
+        const role = 'staff'
+        const { username, phone, email, password, address, restaurant_id } = req.body;
 
         if (!username || !phone || !email || !password || !address || !restaurant_id) {
             res.status(400).json({
@@ -171,4 +198,4 @@ const deleteUser = async (req: Request, res: Response): Promise<void> => {
     }
 };
 
-export { getUser , registerUser , loginUser , deleteUser , loginAdmin};
+export { getUser , registerUser , loginUser , deleteUser , loginAdmin , registerManager};
