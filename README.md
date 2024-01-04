@@ -10,14 +10,15 @@ This repository contains the backend server for a restaurant management applicat
    npm install
 3 **Run server
    ts-node server.ts
-API Endpoints
-Authentication
-POST /admin/log-in
+## API Endpoints
+### Authentication
 
-Log in as an admin.
-GET /get-user
+### POST /admin/log-in
+ Log in as an admin.
 
+### GET /get-user
 Get user details.
+
 Admin
 POST /reg-manager
 
