@@ -5,8 +5,8 @@ import { assignTable, orderProcess, paymentProcess } from '../controller/tableCo
 const tableRouter = express.Router();
 
 
-tableRouter.get('/assign-table',requireSignin,checkRole,assignTable);
-tableRouter.post('/order',requireSignin,checkRole,orderProcess);
-tableRouter.post('/payment',requireSignin,checkRole,paymentProcess)
+tableRouter.get('/assign-table/:uid',requireSignin,assignTable);
+tableRouter.post('/order/:uid',requireSignin,checkRole,orderProcess);
+tableRouter.post('/payment/',requireSignin,checkRole,paymentProcess)
 
 export default tableRouter

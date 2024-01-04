@@ -6,16 +6,30 @@ import { pool } from '../db';
 
 const assignTable = async (req: Request, res: Response): Promise<void> => {
     try {
-        const findAvailableTableQuery = "SELECT id FROM tables WHERE status = 'available' LIMIT 1";
-        const availableTableResult = await pool.query(findAvailableTableQuery);
+        const user_id = req.params.uid;
 
-        if (!availableTableResult.rows.length) {
-            res.status(400).json({ msg: 'No available tables' });
+        const userQuery = 'SELECT restaurant_id FROM users WHERE id = $1';
+        const userResult = await pool.query(userQuery, [user_id]);
+
+        if (userResult.rows.length === 0) {
+            res.status(404).json({
+                msg: "User not found"
+            });
+            return;
+        }
+
+        const restaurant_id = userResult.rows[0].restaurant_id;
+
+        const findAvailableTableQuery = 'SELECT id FROM tables WHERE status = $1 AND restaurant_id = $2 LIMIT 1';
+        const availableTableResult = await pool.query(findAvailableTableQuery, ['available', restaurant_id]);
+
+        if (availableTableResult.rows.length === 0) {
+            res.status(400).json({ msg: 'No available tables ' });
             return;
         }
 
         const assignedTableId = availableTableResult.rows[0].id;
-       //console.log(assignedTableId)
+      
         const assignTableQuery = 'UPDATE tables SET status = $2 WHERE id = $1';
         await pool.query(assignTableQuery, [assignedTableId, 'booked']);
 
@@ -31,12 +45,44 @@ const assignTable = async (req: Request, res: Response): Promise<void> => {
 
 const orderProcess = async (req: Request, res: Response): Promise<void> => {
     try {
-        const { tableId, orderedItems } = req.body; // array of objects
+        const user_id = req.params.uid;
+        const { orderedItems } = req.body;
 
+        // Fetch restaurant_id from users table based on user_id
+        const userQuery = 'SELECT restaurant_id FROM users WHERE id = $1';
+        const userResult = await pool.query(userQuery, [user_id]);
+
+        if (userResult.rows.length === 0) {
+            res.status(404).json({
+                msg: "User not found"
+            });
+            return;
+        }
+
+        const userRestaurantId = userResult.rows[0].restaurant_id;
+
+        const findTableQuery = 'SELECT id FROM tables WHERE status = $1 AND restaurant_id = $2 LIMIT 1';
+        const tableResult = await pool.query(findTableQuery, ['booked', userRestaurantId]);
+
+        if (tableResult.rows.length === 0) {
+            res.status(400).json({ msg: 'No available tables' });
+            return;
+        }
+
+        const tableId = tableResult.rows[0].id;
+        
         for (const item of orderedItems) {
             const { item_id, quantity } = item;
 
-            const insertOrderQuery = 'INSERT INTO orders (table_id, menu_item_id, quantity) VALUES ($1, $2, $3)';
+            // Check if the menu item belongs to the user's restaurant
+            const checkMenuItemQuery = 'SELECT COUNT(*) FROM menu_items WHERE id = $1 AND restaurant_id = $2';
+            const checkMenuItemResult = await pool.query(checkMenuItemQuery, [item_id, userRestaurantId]);
+
+            if (checkMenuItemResult.rows[0].count === 0) {
+                res.status(400).json({ msg: 'Invalid menu item in the order' });
+                return;
+            }
+         const insertOrderQuery = 'INSERT INTO orders (table_id, menu_item_id, quantity) VALUES ($1, $2, $3)';
             await pool.query(insertOrderQuery, [tableId, item_id, quantity]);
         }
 
@@ -65,7 +111,7 @@ const paymentProcess = async (req: Request, res: Response): Promise<void> => {
         // Calculate the total amount for the order
         let totalAmount = 0;
         for (const order of checkOrdersResult.rows) {
-            const {menu_item_id, quantity,id } = order;
+            const {menu_item_id, quantity } = order;
 
             // Query to get the price of the menu item
             const getMenuPriceQuery = 'SELECT price FROM menu_items WHERE id = $1';
