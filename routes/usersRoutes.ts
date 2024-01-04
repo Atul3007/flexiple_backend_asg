@@ -9,7 +9,7 @@ router.post('/admin/log-in',loginAdmin)
 
 router.get('/get-user', getUser);
 router.post("/reg-manager",requireSignin,checkAdminRole, registerManager);
-router.post("/reg-staff",checkRole, registerUser);
+router.post("/reg-staff/:uid",requireSignin,checkRole, registerUser);
 router.post("/login-user",loginUser);
 router.delete("/delete-user/:id",requireSignin,checkRole,deleteUser)
 
