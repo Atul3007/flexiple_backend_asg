@@ -6,9 +6,9 @@ const menuRouter = express.Router();
 
 
 menuRouter.get('/get-menu',getMenu);
-menuRouter.post('/add-menu',requireSignin,checkRole,addMenu);
-menuRouter.patch('/edit-menu/:id',requireSignin,checkRole,editMenu);
-menuRouter.delete('/delete-menu/:id',requireSignin,checkRole,deleteMenu);
+menuRouter.post('/add-menu/:u_id/',requireSignin,checkRole,addMenu);
+menuRouter.patch('/edit-menu/:u_id/:menu_id',requireSignin,checkRole,editMenu);
+menuRouter.delete('/delete-menu/:u_id/:menu_id',requireSignin,checkRole,deleteMenu);
 
 
 export default menuRouter;

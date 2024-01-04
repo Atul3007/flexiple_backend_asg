@@ -2,6 +2,7 @@ import { Request, Response, NextFunction } from 'express';
 import jwt, { VerifyOptions } from 'jsonwebtoken';
 import { pool } from '../db';
 
+
 let user_id: string | undefined;
 
 const requireSignin = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
@@ -27,7 +28,7 @@ const requireSignin = async (req: Request, res: Response, next: NextFunction): P
 
 const checkRole = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-        const query = `SELECT role FROM users WHERE id = $1`;
+        const query = `SELECT role, restaurant_id FROM users WHERE id = $1`;
         const result = await pool.query(query, [user_id]);
 
         if (result.rows.length === 0) {

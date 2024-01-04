@@ -16,23 +16,38 @@ const getMenu = async (req: Request, res: Response): Promise<void> => {
 //-------------------------------add-menu---------------------------------------
 const addMenu = async (req: Request, res: Response): Promise<void> => {
     try {
-        const { name, price, restaurant_id, active } = req.body;
-
-        if (!name || !price || !restaurant_id || active === undefined) {
-             res.status(400).json({
-                msg: "All fields are required"
+        const user_id = req.params.u_id;
+       
+        const { name, price } = req.body;
+       
+        if (!name || !price ) {
+            res.status(400).json({
+                msg: "Name, price, and active are required fields"
             });
             return;
         }
 
-        const query = 'INSERT INTO menu_items (name, price, restaurant_id, active) VALUES ($1, $2, $3, $4) RETURNING *';
-        const values = [name, price, restaurant_id, active];
+        // Fetch restaurant_id based on user_id
+        const userQuery = 'SELECT restaurant_id FROM users WHERE id = $1';
+        const userResult = await pool.query(userQuery, [user_id]);
 
-        const result = await pool.query(query, values);
+        if (userResult.rows.length === 0) {
+            res.status(404).json({
+                msg: "User not found"
+            });
+            return;
+        }
+
+        const restaurant_id = userResult.rows[0].restaurant_id;
+
+        const menuQuery = 'INSERT INTO menu_items (name, price, restaurant_id) VALUES ($1, $2, $3) RETURNING *';
+        const menuValues = [name, price, restaurant_id];
+
+        const menuResult = await pool.query(menuQuery, menuValues);
 
         res.status(201).json({
             msg: "Menu item added successfully",
-            menu_item: result.rows[0]
+            menu_item: menuResult.rows[0]
         });
     } catch (error) {
         console.error("Error in posting menu item:", error);
@@ -44,25 +59,37 @@ const addMenu = async (req: Request, res: Response): Promise<void> => {
 
 const editMenu = async (req: Request, res: Response): Promise<void> => {
     try {
-        const id = req.params.id;
-        //console.log(id)
-        const { name, price, restaurant_id } = req.body;
+        const user_id = req.params.u_id;
+        const menu_id = req.params.menu_id;
+        const { name, price } = req.body;
 
-        if (!id || !name || !price || !restaurant_id) {
+        if (!user_id || !name || !price) {
             res.status(400).json({
-                msg: "All fields are required, and pass id in params"
+                msg: "user_id, name, and price are required fields"
             });
             return;
         }
 
-        const query = 'UPDATE menu_items SET name = $1, price = $2, restaurant_id = $3 WHERE id = $4 RETURNING *';
-        const values = [name, price, restaurant_id, id];
+        const userQuery = 'SELECT restaurant_id FROM users WHERE id = $1';
+        const userResult = await pool.query(userQuery, [user_id]);
+
+        if (userResult.rows.length === 0) {
+            res.status(404).json({
+                msg: "User not found"
+            });
+            return;
+        }
+
+        const restaurant_id = userResult.rows[0].restaurant_id;
+   
+        const query = 'UPDATE menu_items SET name = $1, price = $2 WHERE restaurant_id = $3 AND id = $4 RETURNING *';
+        const values = [name, price, restaurant_id, menu_id];
 
         const result = await pool.query(query, values);
 
         if (result.rows.length === 0) {
             res.status(404).json({
-                msg: "Menu item not found"
+                msg: "Menu item not found or does not belong to the specified user"
             });
             return;
         }
@@ -80,14 +107,30 @@ const editMenu = async (req: Request, res: Response): Promise<void> => {
 //------------------------------delete menu---------------------------------------
 const deleteMenu = async (req: Request, res: Response): Promise<void> => {
     try {
-        const id = req.params.id;
-        const query = 'UPDATE menu_items SET active = false WHERE id = $1 RETURNING *';
-        const values = [id];
+        const user_id = req.params.u_id;
+        const menu_id = req.params.menu_id;
+
+        // Fetch restaurant_id based on user_id
+        const userQuery = 'SELECT restaurant_id FROM users WHERE id = $1';
+        const userResult = await pool.query(userQuery, [user_id]);
+
+        if (userResult.rows.length === 0) {
+            res.status(404).json({
+                msg: "User not found"
+            });
+            return;
+        }
+
+        const restaurant_id = userResult.rows[0].restaurant_id;
+
+        const query = 'UPDATE menu_items SET active = false WHERE id = $1 AND restaurant_id = $2 RETURNING *';
+        const values = [menu_id, restaurant_id];
 
         const result = await pool.query(query, values);
+
         if (result.rows.length === 0) {
             res.status(404).json({
-                msg: "Menu item not found"
+                msg: "Menu item not found or does not belong to the specified user"
             });
             return;
         }
@@ -103,7 +146,7 @@ const deleteMenu = async (req: Request, res: Response): Promise<void> => {
     }
 };
 
-
+      
 export {
     getMenu,
     addMenu,
